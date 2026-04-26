@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebTransformation — porównaj dwie wersje strony</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  body { display: flex; flex-direction: column; background: #0e0e12; color: #e8e8ea; overflow: hidden; }
+
+  .toolbar {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    padding: 10px 14px; background: #16161c; border-bottom: 1px solid #2a2a33;
+  }
+  .toolbar .group { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 280px; }
+  .toolbar label { font-size: 11px; color: #8a8a96; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+  .toolbar input[type="url"] {
+    flex: 1; min-width: 160px;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid #2a2a33;
+    background: #0e0e12; color: #e8e8ea; font-size: 13px; font-family: ui-monospace, 'Cascadia Code', Menlo, monospace;
+  }
+  .toolbar input[type="url"]:focus { outline: none; border-color: #6e5cff; box-shadow: 0 0 0 3px rgba(110,92,255,.2); }
+  .toolbar button {
+    padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer;
+    background: #6e5cff; color: white; font-weight: 600; font-size: 13px;
+    transition: background .15s;
+  }
+  .toolbar button:hover { background: #5a48e8; }
+  .toolbar button.secondary { background: #2a2a33; }
+  .toolbar button.secondary:hover { background: #3a3a44; }
+  .toolbar .pos {
+    font-family: ui-monospace, monospace; font-size: 12px; color: #8a8a96;
+    padding: 4px 8px; background: #0e0e12; border-radius: 4px; min-width: 48px; text-align: center;
+  }
+
+  .compare {
+    position: relative; flex: 1; overflow: hidden; background: #fff;
+    user-select: none;
+  }
+  .compare iframe {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border: 0; background: #fff;
+  }
+
+  .divider {
+    position: absolute; top: 0; bottom: 0; width: 2px; background: #6e5cff;
+    z-index: 10; cursor: ew-resize;
+    box-shadow: 0 0 14px rgba(110,92,255,.65);
+    transform: translateX(-1px);
+  }
+  .divider .grab {
+    position: absolute; top: 0; bottom: 0; left: -10px; right: -10px;
+  }
+  .handle {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 44px; height: 44px; border-radius: 50%;
+    background: #6e5cff; color: white;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 18px rgba(0,0,0,.35), 0 0 0 3px rgba(255,255,255,.15) inset;
+    cursor: ew-resize;
+  }
+  .handle svg { width: 22px; height: 22px; }
+
+  .label {
+    position: absolute; top: 12px; padding: 5px 12px; border-radius: 4px;
+    background: rgba(0,0,0,.72); color: white; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.2px; z-index: 5; pointer-events: none;
+  }
+  .label.left { left: 12px; }
+  .label.right { right: 12px; }
+
+  .empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px; color: #8a8a96; font-size: 14px;
+    text-align: center; padding: 20px; background: #0e0e12;
+  }
+  .empty h2 { color: #e8e8ea; margin: 0; font-size: 20px; font-weight: 600; }
+  .empty .hint { font-size: 13px; max-width: 540px; line-height: 1.6; }
+  .empty .warn { color: #d8c050; font-size: 12px; max-width: 540px; line-height: 1.5; padding: 10px 14px; border: 1px solid #4a4030; border-radius: 6px; background: rgba(216,192,80,.05); }
+  .empty kbd {
+    display: inline-block; padding: 1px 6px; font-family: ui-monospace, monospace;
+    font-size: 11px; background: #2a2a33; border-radius: 3px; border: 1px solid #3a3a44;
+  }
+
+  footer {
+    text-align: center; padding: 8px; font-size: 9px; color: #555;
+    background: #0a0a0e; border-top: 1px solid #2a2a33;
+    text-transform: uppercase; letter-spacing: 1.8px;
+  }
+  footer a { color: #6e5cff; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="group">
+    <label>Stara</label>
+    <input id="urlA" type="url" placeholder="https://stara-wersja.pl" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="group">
+    <label>Nowa</label>
+    <input id="urlB" type="url" placeholder="https://nowa-wersja.pl" autocomplete="off" spellcheck="false">
+  </div>
+  <button id="loadBtn">Porównaj</button>
+  <button id="swapBtn" class="secondary" title="Zamień strony miejscami">Zamień</button>
+  <button id="resetBtn" class="secondary" title="Wyczyść">Wyczyść</button>
+  <span class="pos" id="posLabel">50%</span>
+</div>
+
+<div class="compare" id="compare">
+  <div class="empty" id="empty">
+    <h2>Wrzuć dwa linki i przesuń suwakiem</h2>
+    <div class="hint">
+      Po lewej stara wersja, po prawej nowa. Pionowa linia w środku jest ruchoma —
+      przesuń ją myszką, palcem albo strzałkami <kbd>←</kbd> <kbd>→</kbd>
+      (z <kbd>Shift</kbd> skacze po 5%).
+    </div>
+    <div class="warn">
+      Uwaga: część stron blokuje osadzanie w iframe (nagłówki <code>X-Frame-Options</code> / CSP <code>frame-ancestors</code>).
+      Jeśli zamiast strony zobaczysz biały ekran albo komunikat o odmowie — to dlatego.
+      Konsola przeglądarki pokaże szczegóły.
+    </div>
+  </div>
+</div>
+
+<footer>
+  Forged by <a href="https://cyberdemigods.com" target="_blank" rel="noopener">CyberDemigods</a>
+</footer>
+
+<script>
+(function () {
+  const compare = document.getElementById('compare');
+  const empty = document.getElementById('empty');
+  const urlA = document.getElementById('urlA');
+  const urlB = document.getElementById('urlB');
+  const loadBtn = document.getElementById('loadBtn');
+  const swapBtn = document.getElementById('swapBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const posLabel = document.getElementById('posLabel');
+
+  let iframeA = null, iframeB = null, divider = null, handle = null;
+  let position = 50;
+  let dragging = false;
+
+  const SVG_HANDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 3 12 9 18"></polyline><polyline points="15 6 21 12 15 18"></polyline></svg>';
+
+  function normalize(url) {
+    if (!url) return '';
+    url = url.trim();
+    if (!url) return '';
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    return url;
+  }
+
+  function buildScene(a, b) {
+    compare.innerHTML = '';
+
+    iframeA = document.createElement('iframe');
+    iframeA.src = a;
+    iframeA.referrerPolicy = 'no-referrer-when-downgrade';
+    iframeA.setAttribute('allow', 'fullscreen');
+
+    iframeB = document.createElement('iframe');
+    iframeB.src = b;
+    iframeB.referrerPolicy = 'no-referrer-when-downgrade';
+    iframeB.setAttribute('allow', 'fullscreen');
+
+    const labelL = document.createElement('div');
+    labelL.className = 'label left';
+    labelL.textContent = 'Stara';
+
+    const labelR = document.createElement('div');
+    labelR.className = 'label right';
+    labelR.textContent = 'Nowa';
+
+    divider = document.createElement('div');
+    divider.className = 'divider';
+    const grab = document.createElement('div');
+    grab.className = 'grab';
+    handle = document.createElement('div');
+    handle.className = 'handle';
+    handle.innerHTML = SVG_HANDLE;
+    divider.appendChild(grab);
+    divider.appendChild(handle);
+
+    compare.appendChild(iframeA);
+    compare.appendChild(iframeB);
+    compare.appendChild(labelL);
+    compare.appendChild(labelR);
+    compare.appendChild(divider);
+
+    setPosition(50);
+  }
+
+  function setPosition(pct) {
+    pct = Math.max(0, Math.min(100, pct));
+    position = pct;
+    posLabel.textContent = Math.round(pct) + '%';
+    if (!divider) return;
+    divider.style.left = pct + '%';
+    if (iframeB) iframeB.style.clipPath = 'inset(0 0 0 ' + pct + '%)';
+  }
+
+  function getX(e) {
+    if (e.touches && e.touches[0]) return e.touches[0].clientX;
+    return e.clientX;
+  }
+
+  function startDrag(e) {
+    dragging = true;
+    if (iframeA) iframeA.style.pointerEvents = 'none';
+    if (iframeB) iframeB.style.pointerEvents = 'none';
+    document.body.style.cursor = 'ew-resize';
+    moveDrag(e);
+    e.preventDefault();
+  }
+
+  function moveDrag(e) {
+    if (!dragging) return;
+    const rect = compare.getBoundingClientRect();
+    const x = getX(e) - rect.left;
+    setPosition((x / rect.width) * 100);
+    e.preventDefault();
+  }
+
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    if (iframeA) iframeA.style.pointerEvents = '';
+    if (iframeB) iframeB.style.pointerEvents = '';
+    document.body.style.cursor = '';
+  }
+
+  document.addEventListener('mousedown', (e) => {
+    if (!divider) return;
+    if (divider.contains(e.target) || e.target === divider) startDrag(e);
+  });
+  document.addEventListener('mousemove', moveDrag);
+  document.addEventListener('mouseup', endDrag);
+
+  document.addEventListener('touchstart', (e) => {
+    if (!divider) return;
+    if (divider.contains(e.target) || e.target === divider) startDrag(e);
+  }, { passive: false });
+  document.addEventListener('touchmove', moveDrag, { passive: false });
+  document.addEventListener('touchend', endDrag);
+  document.addEventListener('touchcancel', endDrag);
+
+  document.addEventListener('keydown', (e) => {
+    if (!divider) return;
+    if (e.target === urlA || e.target === urlB) return;
+    const step = e.shiftKey ? 5 : 1;
+    if (e.key === 'ArrowLeft')  { setPosition(position - step); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { setPosition(position + step); e.preventDefault(); }
+    if (e.key === 'Home')       { setPosition(0); e.preventDefault(); }
+    if (e.key === 'End')        { setPosition(100); e.preventDefault(); }
+  });
+
+  function load() {
+    const a = normalize(urlA.value);
+    const b = normalize(urlB.value);
+    if (!a || !b) {
+      alert('Wpisz oba adresy — stary i nowy.');
+      return;
+    }
+    urlA.value = a;
+    urlB.value = b;
+    buildScene(a, b);
+  }
+
+  loadBtn.addEventListener('click', load);
+  urlA.addEventListener('keydown', (e) => { if (e.key === 'Enter') load(); });
+  urlB.addEventListener('keydown', (e) => { if (e.key === 'Enter') load(); });
+
+  swapBtn.addEventListener('click', () => {
+    const t = urlA.value; urlA.value = urlB.value; urlB.value = t;
+    if (iframeA) load();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    urlA.value = ''; urlB.value = '';
+    iframeA = iframeB = divider = handle = null;
+    compare.innerHTML = '';
+    compare.appendChild(empty);
+    setPosition(50);
+    urlA.focus();
+  });
+
+  urlA.focus();
+})();
+</script>
+
+</body>
+</html>
