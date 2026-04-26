@@ -10,9 +10,10 @@
   body { display: flex; flex-direction: column; background: #0e0e12; color: #e8e8ea; overflow: hidden; }
 
   .toolbar {
-    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    display: flex; flex-direction: column; gap: 8px;
     padding: 10px 14px; background: #16161c; border-bottom: 1px solid #2a2a33;
   }
+  .toolbar .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .toolbar .group { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 280px; }
   .toolbar label { font-size: 11px; color: #8a8a96; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
   .toolbar input[type="url"] {
@@ -29,16 +30,40 @@
   .toolbar button:hover { background: #5a48e8; }
   .toolbar button.secondary { background: #2a2a33; }
   .toolbar button.secondary:hover { background: #3a3a44; }
+  .toolbar button.ghost {
+    background: transparent; border: 1px solid #2a2a33; color: #c8c8ce;
+    padding: 6px 12px; font-size: 12px;
+  }
+  .toolbar button.ghost:hover { background: #2a2a33; border-color: #3a3a44; }
+  .toolbar button.ghost.active { background: #6e5cff; border-color: #6e5cff; color: white; }
   .toolbar .pos {
     font-family: ui-monospace, monospace; font-size: 12px; color: #8a8a96;
     padding: 4px 8px; background: #0e0e12; border-radius: 4px; min-width: 48px; text-align: center;
   }
+  .toolbar .vp-group { display: flex; gap: 4px; padding: 2px; background: #0e0e12; border-radius: 6px; border: 1px solid #2a2a33; }
+  .toolbar .vp-group button { padding: 5px 10px; font-size: 11px; border-radius: 4px; }
+  .toolbar .metrics {
+    display: flex; gap: 14px; align-items: center; margin-left: auto;
+    font-size: 11px; color: #8a8a96;
+  }
+  .toolbar .metric { display: flex; align-items: center; gap: 6px; }
+  .toolbar .metric .dot { width: 8px; height: 8px; border-radius: 50%; background: #6e5cff; }
+  .toolbar .metric .dot.B { background: #ff6ec4; }
+  .toolbar .metric .val { font-family: ui-monospace, monospace; color: #e8e8ea; min-width: 42px; }
+  .toolbar .metric .val.loading { color: #d8c050; }
+  .toolbar .spacer { flex: 1; }
 
   .compare {
-    position: relative; flex: 1; overflow: hidden; background: #fff;
-    user-select: none;
+    position: relative; flex: 1; overflow: hidden; background: #0a0a0e;
+    user-select: none; display: flex; align-items: stretch; justify-content: center;
   }
-  .compare iframe {
+  .viewport {
+    position: relative; width: 100%; height: 100%; background: #fff;
+    transition: width .25s ease, max-width .25s ease;
+  }
+  .viewport.tablet { width: 768px; max-width: 100%; box-shadow: 0 0 24px rgba(0,0,0,.4); }
+  .viewport.mobile { width: 390px; max-width: 100%; box-shadow: 0 0 24px rgba(0,0,0,.4); }
+  .viewport iframe {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     border: 0; background: #fff;
   }
@@ -83,6 +108,17 @@
     font-size: 11px; background: #2a2a33; border-radius: 3px; border: 1px solid #3a3a44;
   }
 
+  .toast {
+    position: fixed; bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #6e5cff; color: white; padding: 10px 22px; border-radius: 6px;
+    font-size: 13px; font-weight: 600; opacity: 0;
+    transition: opacity .25s, transform .25s;
+    z-index: 100; pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
   footer {
     text-align: center; padding: 8px; font-size: 9px; color: #555;
     background: #0a0a0e; border-top: 1px solid #2a2a33;
@@ -95,18 +131,33 @@
 <body>
 
 <div class="toolbar">
-  <div class="group">
-    <label>Stara</label>
-    <input id="urlA" type="url" placeholder="https://stara-wersja.pl" autocomplete="off" spellcheck="false">
+  <div class="row">
+    <div class="group">
+      <label>Stara</label>
+      <input id="urlA" type="url" placeholder="https://stara-wersja.pl" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="group">
+      <label>Nowa</label>
+      <input id="urlB" type="url" placeholder="https://nowa-wersja.pl" autocomplete="off" spellcheck="false">
+    </div>
+    <button id="loadBtn">Porównaj</button>
+    <button id="swapBtn" class="secondary" title="Zamień strony miejscami">Zamień</button>
+    <button id="resetBtn" class="secondary" title="Wyczyść">Wyczyść</button>
+    <span class="pos" id="posLabel">50%</span>
   </div>
-  <div class="group">
-    <label>Nowa</label>
-    <input id="urlB" type="url" placeholder="https://nowa-wersja.pl" autocomplete="off" spellcheck="false">
+
+  <div class="row">
+    <div class="vp-group" id="vpGroup">
+      <button class="ghost active" data-vp="desktop">Desktop</button>
+      <button class="ghost" data-vp="tablet">Tablet · 768</button>
+      <button class="ghost" data-vp="mobile">Mobile · 390</button>
+    </div>
+    <button id="shareBtn" class="ghost" title="Skopiuj link z oboma URL-ami">Kopiuj link</button>
+    <div class="metrics" id="metrics" hidden>
+      <span class="metric"><span class="dot"></span>Stara: <span id="timeA" class="val loading">...</span></span>
+      <span class="metric"><span class="dot B"></span>Nowa: <span id="timeB" class="val loading">...</span></span>
+    </div>
   </div>
-  <button id="loadBtn">Porównaj</button>
-  <button id="swapBtn" class="secondary" title="Zamień strony miejscami">Zamień</button>
-  <button id="resetBtn" class="secondary" title="Wyczyść">Wyczyść</button>
-  <span class="pos" id="posLabel">50%</span>
 </div>
 
 <div class="compare" id="compare">
@@ -115,7 +166,12 @@
     <div class="hint">
       Po lewej stara wersja, po prawej nowa. Pionowa linia w środku jest ruchoma —
       przesuń ją myszką, palcem albo strzałkami <kbd>←</kbd> <kbd>→</kbd>
-      (z <kbd>Shift</kbd> skacze po 5%).
+      (z <kbd>Shift</kbd> skacze po 5%, <kbd>Home</kbd>/<kbd>End</kbd> na krańce).
+    </div>
+    <div class="hint" style="font-size: 12px;">
+      Możesz też przełączać <strong>viewport</strong> (Desktop / Tablet / Mobile),
+      mierzyć <strong>czas ładowania</strong> obu stron, i <strong>kopiować link</strong>
+      z preconfigured URL-ami (do wysłania klientowi).
     </div>
     <div class="warn">
       Uwaga: część stron blokuje osadzanie w iframe (nagłówki <code>X-Frame-Options</code> / CSP <code>frame-ancestors</code>).
@@ -129,6 +185,8 @@
   Forged by <a href="https://cyberdemigods.com" target="_blank" rel="noopener">CyberDemigods</a>
 </footer>
 
+<div class="toast" id="toast"></div>
+
 <script>
 (function () {
   const compare = document.getElementById('compare');
@@ -138,11 +196,18 @@
   const loadBtn = document.getElementById('loadBtn');
   const swapBtn = document.getElementById('swapBtn');
   const resetBtn = document.getElementById('resetBtn');
+  const shareBtn = document.getElementById('shareBtn');
   const posLabel = document.getElementById('posLabel');
+  const vpGroup = document.getElementById('vpGroup');
+  const metrics = document.getElementById('metrics');
+  const timeA = document.getElementById('timeA');
+  const timeB = document.getElementById('timeB');
+  const toastEl = document.getElementById('toast');
 
-  let iframeA = null, iframeB = null, divider = null, handle = null;
+  let viewport = null, iframeA = null, iframeB = null, divider = null, handle = null;
   let position = 50;
   let dragging = false;
+  let currentVp = 'desktop';
 
   const SVG_HANDLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 3 12 9 18"></polyline><polyline points="15 6 21 12 15 18"></polyline></svg>';
 
@@ -154,8 +219,35 @@
     return url;
   }
 
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toastEl.classList.remove('show'), 2000);
+  }
+
+  function trackLoad(iframe, displayEl) {
+    const start = performance.now();
+    displayEl.textContent = '...';
+    displayEl.classList.add('loading');
+    let done = false;
+    const finish = (label) => {
+      if (done) return;
+      done = true;
+      const elapsed = performance.now() - start;
+      displayEl.textContent = label || (elapsed < 1000 ? Math.round(elapsed) + ' ms' : (elapsed / 1000).toFixed(2) + ' s');
+      displayEl.classList.remove('loading');
+    };
+    iframe.addEventListener('load', () => finish(), { once: true });
+    iframe.addEventListener('error', () => finish('błąd'), { once: true });
+    setTimeout(() => finish('timeout'), 30000);
+  }
+
   function buildScene(a, b) {
     compare.innerHTML = '';
+
+    viewport = document.createElement('div');
+    viewport.className = 'viewport ' + currentVp;
 
     iframeA = document.createElement('iframe');
     iframeA.src = a;
@@ -185,11 +277,16 @@
     divider.appendChild(grab);
     divider.appendChild(handle);
 
-    compare.appendChild(iframeA);
-    compare.appendChild(iframeB);
-    compare.appendChild(labelL);
-    compare.appendChild(labelR);
-    compare.appendChild(divider);
+    viewport.appendChild(iframeA);
+    viewport.appendChild(iframeB);
+    viewport.appendChild(labelL);
+    viewport.appendChild(labelR);
+    viewport.appendChild(divider);
+    compare.appendChild(viewport);
+
+    metrics.hidden = false;
+    trackLoad(iframeA, timeA);
+    trackLoad(iframeB, timeB);
 
     setPosition(50);
   }
@@ -201,6 +298,17 @@
     if (!divider) return;
     divider.style.left = pct + '%';
     if (iframeB) iframeB.style.clipPath = 'inset(0 0 0 ' + pct + '%)';
+  }
+
+  function applyViewport(vp) {
+    currentVp = vp;
+    if (viewport) {
+      viewport.classList.remove('desktop', 'tablet', 'mobile');
+      viewport.classList.add(vp);
+    }
+    vpGroup.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.vp === vp);
+    });
   }
 
   function getX(e) {
@@ -218,8 +326,8 @@
   }
 
   function moveDrag(e) {
-    if (!dragging) return;
-    const rect = compare.getBoundingClientRect();
+    if (!dragging || !viewport) return;
+    const rect = viewport.getBoundingClientRect();
     const x = getX(e) - rect.left;
     setPosition((x / rect.width) * 100);
     e.preventDefault();
@@ -262,7 +370,7 @@
     const a = normalize(urlA.value);
     const b = normalize(urlB.value);
     if (!a || !b) {
-      alert('Wpisz oba adresy — stary i nowy.');
+      toast('Wpisz oba adresy — stary i nowy.');
       return;
     }
     urlA.value = a;
@@ -281,14 +389,68 @@
 
   resetBtn.addEventListener('click', () => {
     urlA.value = ''; urlB.value = '';
-    iframeA = iframeB = divider = handle = null;
+    viewport = iframeA = iframeB = divider = handle = null;
     compare.innerHTML = '';
     compare.appendChild(empty);
+    metrics.hidden = true;
+    timeA.textContent = '...'; timeB.textContent = '...';
+    timeA.classList.add('loading'); timeB.classList.add('loading');
     setPosition(50);
+    history.replaceState(null, '', location.pathname);
     urlA.focus();
   });
 
-  urlA.focus();
+  vpGroup.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-vp]');
+    if (!btn) return;
+    applyViewport(btn.dataset.vp);
+  });
+
+  shareBtn.addEventListener('click', () => {
+    const a = normalize(urlA.value);
+    const b = normalize(urlB.value);
+    if (!a || !b) {
+      toast('Najpierw wpisz oba adresy.');
+      return;
+    }
+    const url = location.origin + location.pathname
+      + '?a=' + encodeURIComponent(a)
+      + '&b=' + encodeURIComponent(b)
+      + (currentVp !== 'desktop' ? '&vp=' + currentVp : '');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(
+        () => toast('Link skopiowany do schowka'),
+        () => fallbackCopy(url)
+      );
+    } else {
+      fallbackCopy(url);
+    }
+  });
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Link skopiowany'); }
+    catch { prompt('Skopiuj link:', text); }
+    ta.remove();
+  }
+
+  // Auto-load from URL params: ?a=...&b=...&vp=tablet
+  (function initFromParams() {
+    const params = new URLSearchParams(location.search);
+    const a = params.get('a');
+    const b = params.get('b');
+    const vp = params.get('vp');
+    if (vp && ['desktop','tablet','mobile'].includes(vp)) applyViewport(vp);
+    if (a && b) {
+      urlA.value = a;
+      urlB.value = b;
+      load();
+    } else {
+      urlA.focus();
+    }
+  })();
 })();
 </script>
 
