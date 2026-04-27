@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WebTransformation — porównaj dwie wersje strony</title>
+<title>WebTransformation — compare two versions of a website</title>
+<meta name="description" content="Compare two versions of a website side-by-side with a draggable divider. Single-file open-source tool by CyberDemigods.">
+<meta property="og:title" content="WebTransformation">
+<meta property="og:description" content="Compare two versions of a website side-by-side with a draggable divider.">
+<meta property="og:type" content="website">
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
@@ -51,7 +55,7 @@
   .toolbar .metric .dot.B { background: #ff6ec4; }
   .toolbar .metric .val { font-family: ui-monospace, monospace; color: #e8e8ea; min-width: 42px; }
   .toolbar .metric .val.loading { color: #d8c050; }
-  .toolbar .spacer { flex: 1; }
+  #langBtn { font-family: ui-monospace, monospace; font-weight: 700; min-width: 36px; }
 
   .compare {
     position: relative; flex: 1; overflow: hidden; background: #0a0a0e;
@@ -133,16 +137,16 @@
 <div class="toolbar">
   <div class="row">
     <div class="group">
-      <label>Stara</label>
-      <input id="urlA" type="url" placeholder="https://stara-wersja.pl" autocomplete="off" spellcheck="false">
+      <label data-i18n="oldLabel">Old</label>
+      <input id="urlA" type="url" data-i18n-placeholder="oldPlaceholder" placeholder="https://old-version.com" autocomplete="off" spellcheck="false">
     </div>
     <div class="group">
-      <label>Nowa</label>
-      <input id="urlB" type="url" placeholder="https://nowa-wersja.pl" autocomplete="off" spellcheck="false">
+      <label data-i18n="newLabel">New</label>
+      <input id="urlB" type="url" data-i18n-placeholder="newPlaceholder" placeholder="https://new-version.com" autocomplete="off" spellcheck="false">
     </div>
-    <button id="loadBtn">Porównaj</button>
-    <button id="swapBtn" class="secondary" title="Zamień strony miejscami">Zamień</button>
-    <button id="resetBtn" class="secondary" title="Wyczyść">Wyczyść</button>
+    <button id="loadBtn" data-i18n="compareBtn">Compare</button>
+    <button id="swapBtn" class="secondary" data-i18n="swapBtn" data-i18n-title="swapTitle" title="Swap sides">Swap</button>
+    <button id="resetBtn" class="secondary" data-i18n="clearBtn" data-i18n-title="clearTitle" title="Clear">Clear</button>
     <span class="pos" id="posLabel">50%</span>
   </div>
 
@@ -152,43 +156,150 @@
       <button class="ghost" data-vp="tablet">Tablet · 768</button>
       <button class="ghost" data-vp="mobile">Mobile · 390</button>
     </div>
-    <button id="shareBtn" class="ghost" title="Skopiuj link z oboma URL-ami">Kopiuj link</button>
+    <button id="shareBtn" class="ghost" data-i18n="copyBtn" data-i18n-title="copyTitle" title="Copy a link with both URLs preconfigured">Copy link</button>
+    <button id="langBtn" class="ghost" data-i18n-title="langTitle" title="Switch language">PL</button>
     <div class="metrics" id="metrics" hidden>
-      <span class="metric"><span class="dot"></span>Stara: <span id="timeA" class="val loading">...</span></span>
-      <span class="metric"><span class="dot B"></span>Nowa: <span id="timeB" class="val loading">...</span></span>
+      <span class="metric"><span class="dot"></span><span data-i18n="metricOld">Old:</span> <span id="timeA" class="val loading">...</span></span>
+      <span class="metric"><span class="dot B"></span><span data-i18n="metricNew">New:</span> <span id="timeB" class="val loading">...</span></span>
     </div>
   </div>
 </div>
 
 <div class="compare" id="compare">
   <div class="empty" id="empty">
-    <h2>Wrzuć dwa linki i przesuń suwakiem</h2>
-    <div class="hint">
-      Po lewej stara wersja, po prawej nowa. Pionowa linia w środku jest ruchoma —
-      przesuń ją myszką, palcem albo strzałkami <kbd>←</kbd> <kbd>→</kbd>
-      (z <kbd>Shift</kbd> skacze po 5%, <kbd>Home</kbd>/<kbd>End</kbd> na krańce).
+    <h2 data-i18n="emptyTitle">Drop two URLs and slide the divider</h2>
+    <div class="hint" data-i18n-html="emptyHint">
+      Old version on the left, new on the right. The vertical line in the middle is draggable —
+      move it with mouse, finger, or arrow keys <kbd>←</kbd> <kbd>→</kbd>
+      (with <kbd>Shift</kbd> jumps by 5%, <kbd>Home</kbd>/<kbd>End</kbd> to the edges).
     </div>
-    <div class="hint" style="font-size: 12px;">
-      Możesz też przełączać <strong>viewport</strong> (Desktop / Tablet / Mobile),
-      mierzyć <strong>czas ładowania</strong> obu stron, i <strong>kopiować link</strong>
-      z preconfigured URL-ami (do wysłania klientowi).
+    <div class="hint" style="font-size: 12px;" data-i18n-html="emptyHint2">
+      You can also switch <strong>viewport</strong> (Desktop / Tablet / Mobile),
+      measure <strong>load time</strong> for both, and <strong>copy a link</strong>
+      with the URLs preconfigured (great for sending to clients).
     </div>
-    <div class="warn">
-      Uwaga: część stron blokuje osadzanie w iframe (nagłówki <code>X-Frame-Options</code> / CSP <code>frame-ancestors</code>).
-      Jeśli zamiast strony zobaczysz biały ekran albo komunikat o odmowie — to dlatego.
-      Konsola przeglądarki pokaże szczegóły.
+    <div class="warn" data-i18n-html="emptyWarn">
+      Heads up: many sites block iframe embedding (<code>X-Frame-Options</code> headers / CSP <code>frame-ancestors</code>).
+      If you see a blank screen instead of the page — that's why.
+      Browser console will show details.
     </div>
   </div>
 </div>
 
 <footer>
   Forged by <a href="https://cyberdemigods.com" target="_blank" rel="noopener">CyberDemigods</a>
+  · <a href="https://github.com/CyberDemigods/web-transformation" target="_blank" rel="noopener">GitHub</a>
 </footer>
 
 <div class="toast" id="toast"></div>
 
 <script>
 (function () {
+  const I18N = {
+    en: {
+      title: "WebTransformation — compare two versions of a website",
+      oldLabel: "Old",
+      newLabel: "New",
+      oldPlaceholder: "https://old-version.com",
+      newPlaceholder: "https://new-version.com",
+      compareBtn: "Compare",
+      swapBtn: "Swap",
+      swapTitle: "Swap sides",
+      clearBtn: "Clear",
+      clearTitle: "Clear",
+      copyBtn: "Copy link",
+      copyTitle: "Copy a link with both URLs preconfigured",
+      langTitle: "Switch language to Polish",
+      metricOld: "Old:",
+      metricNew: "New:",
+      labelOld: "Old",
+      labelNew: "New",
+      emptyTitle: "Drop two URLs and slide the divider",
+      emptyHint: 'Old version on the left, new on the right. The vertical line in the middle is draggable — move it with mouse, finger, or arrow keys <kbd>←</kbd> <kbd>→</kbd> (with <kbd>Shift</kbd> jumps by 5%, <kbd>Home</kbd>/<kbd>End</kbd> to the edges).',
+      emptyHint2: 'You can also switch <strong>viewport</strong> (Desktop / Tablet / Mobile), measure <strong>load time</strong> for both, and <strong>copy a link</strong> with the URLs preconfigured (great for sending to clients).',
+      emptyWarn: 'Heads up: many sites block iframe embedding (<code>X-Frame-Options</code> headers / CSP <code>frame-ancestors</code>). If you see a blank screen instead of the page — that’s why. Browser console will show details.',
+      toastEnterBoth: "Enter both URLs — old and new.",
+      toastEnterFirst: "Enter both URLs first.",
+      toastCopied: "Link copied to clipboard",
+      toastCopiedShort: "Link copied",
+      timeError: "error",
+      timeTimeout: "timeout",
+      promptCopy: "Copy this link:",
+      btnLabel: "PL"
+    },
+    pl: {
+      title: "WebTransformation — porównaj dwie wersje strony",
+      oldLabel: "Stara",
+      newLabel: "Nowa",
+      oldPlaceholder: "https://stara-wersja.pl",
+      newPlaceholder: "https://nowa-wersja.pl",
+      compareBtn: "Porównaj",
+      swapBtn: "Zamień",
+      swapTitle: "Zamień strony miejscami",
+      clearBtn: "Wyczyść",
+      clearTitle: "Wyczyść",
+      copyBtn: "Kopiuj link",
+      copyTitle: "Skopiuj link z oboma URL-ami",
+      langTitle: "Przełącz język na angielski",
+      metricOld: "Stara:",
+      metricNew: "Nowa:",
+      labelOld: "Stara",
+      labelNew: "Nowa",
+      emptyTitle: "Wrzuć dwa linki i przesuń suwakiem",
+      emptyHint: 'Po lewej stara wersja, po prawej nowa. Pionowa linia w środku jest ruchoma — przesuń ją myszką, palcem albo strzałkami <kbd>←</kbd> <kbd>→</kbd> (z <kbd>Shift</kbd> skacze po 5%, <kbd>Home</kbd>/<kbd>End</kbd> na krańce).',
+      emptyHint2: 'Możesz też przełączać <strong>viewport</strong> (Desktop / Tablet / Mobile), mierzyć <strong>czas ładowania</strong> obu stron, i <strong>kopiować link</strong> z preconfigured URL-ami (do wysłania klientowi).',
+      emptyWarn: 'Uwaga: część stron blokuje osadzanie w iframe (nagłówki <code>X-Frame-Options</code> / CSP <code>frame-ancestors</code>). Jeśli zamiast strony zobaczysz biały ekran albo komunikat o odmowie — to dlatego. Konsola przeglądarki pokaże szczegóły.',
+      toastEnterBoth: "Wpisz oba adresy — stary i nowy.",
+      toastEnterFirst: "Najpierw wpisz oba adresy.",
+      toastCopied: "Link skopiowany do schowka",
+      toastCopiedShort: "Link skopiowany",
+      timeError: "błąd",
+      timeTimeout: "timeout",
+      promptCopy: "Skopiuj link:",
+      btnLabel: "EN"
+    }
+  };
+
+  function detectLang() {
+    const stored = localStorage.getItem('wt-lang');
+    if (stored === 'pl' || stored === 'en') return stored;
+    const browserLang = (navigator.language || 'en').toLowerCase();
+    return browserLang.startsWith('pl') ? 'pl' : 'en';
+  }
+
+  let currentLang = detectLang();
+  const t = (key) => (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+
+  function applyI18n() {
+    document.documentElement.lang = currentLang;
+    document.title = t('title');
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+      el.innerHTML = t(el.dataset.i18nHtml);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+      el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+      el.title = t(el.dataset.i18nTitle);
+    });
+    const langBtn = document.getElementById('langBtn');
+    if (langBtn) langBtn.textContent = t('btnLabel');
+    // Re-apply scene labels if scene already built
+    const labelL = document.querySelector('.label.left');
+    const labelR = document.querySelector('.label.right');
+    if (labelL) labelL.textContent = t('labelOld');
+    if (labelR) labelR.textContent = t('labelNew');
+  }
+
+  function toggleLang() {
+    currentLang = currentLang === 'pl' ? 'en' : 'pl';
+    localStorage.setItem('wt-lang', currentLang);
+    applyI18n();
+  }
+
   const compare = document.getElementById('compare');
   const empty = document.getElementById('empty');
   const urlA = document.getElementById('urlA');
@@ -197,6 +308,7 @@
   const swapBtn = document.getElementById('swapBtn');
   const resetBtn = document.getElementById('resetBtn');
   const shareBtn = document.getElementById('shareBtn');
+  const langBtn = document.getElementById('langBtn');
   const posLabel = document.getElementById('posLabel');
   const vpGroup = document.getElementById('vpGroup');
   const metrics = document.getElementById('metrics');
@@ -239,8 +351,8 @@
       displayEl.classList.remove('loading');
     };
     iframe.addEventListener('load', () => finish(), { once: true });
-    iframe.addEventListener('error', () => finish('błąd'), { once: true });
-    setTimeout(() => finish('timeout'), 30000);
+    iframe.addEventListener('error', () => finish(t('timeError')), { once: true });
+    setTimeout(() => finish(t('timeTimeout')), 30000);
   }
 
   function buildScene(a, b) {
@@ -261,11 +373,11 @@
 
     const labelL = document.createElement('div');
     labelL.className = 'label left';
-    labelL.textContent = 'Stara';
+    labelL.textContent = t('labelOld');
 
     const labelR = document.createElement('div');
     labelR.className = 'label right';
-    labelR.textContent = 'Nowa';
+    labelR.textContent = t('labelNew');
 
     divider = document.createElement('div');
     divider.className = 'divider';
@@ -370,7 +482,7 @@
     const a = normalize(urlA.value);
     const b = normalize(urlB.value);
     if (!a || !b) {
-      toast('Wpisz oba adresy — stary i nowy.');
+      toast(t('toastEnterBoth'));
       return;
     }
     urlA.value = a;
@@ -383,7 +495,7 @@
   urlB.addEventListener('keydown', (e) => { if (e.key === 'Enter') load(); });
 
   swapBtn.addEventListener('click', () => {
-    const t = urlA.value; urlA.value = urlB.value; urlB.value = t;
+    const tmp = urlA.value; urlA.value = urlB.value; urlB.value = tmp;
     if (iframeA) load();
   });
 
@@ -410,16 +522,17 @@
     const a = normalize(urlA.value);
     const b = normalize(urlB.value);
     if (!a || !b) {
-      toast('Najpierw wpisz oba adresy.');
+      toast(t('toastEnterFirst'));
       return;
     }
     const url = location.origin + location.pathname
       + '?a=' + encodeURIComponent(a)
       + '&b=' + encodeURIComponent(b)
-      + (currentVp !== 'desktop' ? '&vp=' + currentVp : '');
+      + (currentVp !== 'desktop' ? '&vp=' + currentVp : '')
+      + '&lang=' + currentLang;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(
-        () => toast('Link skopiowany do schowka'),
+        () => toast(t('toastCopied')),
         () => fallbackCopy(url)
       );
     } else {
@@ -431,17 +544,28 @@
     const ta = document.createElement('textarea');
     ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
     document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); toast('Link skopiowany'); }
-    catch { prompt('Skopiuj link:', text); }
+    try { document.execCommand('copy'); toast(t('toastCopiedShort')); }
+    catch { prompt(t('promptCopy'), text); }
     ta.remove();
   }
 
-  // Auto-load from URL params: ?a=...&b=...&vp=tablet
+  langBtn.addEventListener('click', toggleLang);
+
+  // Apply i18n once everything is wired up.
+  applyI18n();
+
+  // Auto-load from URL params: ?a=...&b=...&vp=tablet&lang=pl
   (function initFromParams() {
     const params = new URLSearchParams(location.search);
     const a = params.get('a');
     const b = params.get('b');
     const vp = params.get('vp');
+    const lang = params.get('lang');
+    if (lang && (lang === 'pl' || lang === 'en') && lang !== currentLang) {
+      currentLang = lang;
+      localStorage.setItem('wt-lang', currentLang);
+      applyI18n();
+    }
     if (vp && ['desktop','tablet','mobile'].includes(vp)) applyViewport(vp);
     if (a && b) {
       urlA.value = a;
